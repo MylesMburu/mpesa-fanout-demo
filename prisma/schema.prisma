@@ -1,0 +1,77 @@
+// Prisma schema for the RenderCon Kenya demo:
+// "Async by Design" — cloud infra patterns for React apps that talk to M-Pesa
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  // We stopped waiting. A late callback may still move this to PAID or
+  // FAILED. PAID and FAILED themselves are terminal.
+  TIMED_OUT
+}
+
+// One row per payment attempt. Inserted before Daraja is called, so the
+// callback always has something to correlate against.
+model Payment {
+  id          String        @id @default(cuid())
+  phoneNumber String // stored as sent to Daraja, e.g. 2547XXXXXXXX
+  amount      Int
+  status      PaymentStatus @default(PENDING)
+
+  // Minted in the click handler and reused if that attempt is retried.
+  // This is what makes a double-submit one STK push, not two.
+  idempotencyKey String @unique
+
+  // Attached after Daraja accepts the push. Null until then: a callback
+  // that wins the race is stored on UnmatchedCallback and applied here
+  // once these ids exist.
+  merchantRequestId  String?
+  checkoutRequestId  String? @unique
+  resultCode         Int?
+  resultDesc         String?
+  mpesaReceiptNumber String?
+
+  // Fan-out tracking: set once each SNS subscriber has processed the
+  // payment.status.changed event for this row. Lets the demo UI show
+  // each subscriber lighting up independently. These do not gate the
+  // payment result — the row's status does.
+  notifiedAt DateTime?
+  auditedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  auditLogs AuditLog[]
+}
+
+// A Daraja callback that arrived before we had stored its
+// CheckoutRequestID. Applied to the Payment row as soon as that id
+// exists, instead of being acknowledged and forgotten.
+model UnmatchedCallback {
+  id                 String   @id @default(cuid())
+  checkoutRequestId  String   @unique
+  merchantRequestId  String?
+  resultCode         Int
+  resultDesc         String?
+  mpesaReceiptNumber String?
+  createdAt          DateTime @default(now())
+}
+
+// Independent fan-out consumer #2 — proves the SNS subscribers are
+// decoupled from each other, not just from the callback handler.
+model AuditLog {
+  id        String   @id @default(cuid())
+  paymentId String
+  payment   Payment  @relation(fields: [paymentId], references: [id])
+  event     String
+  detail    String?
+  createdAt DateTime @default(now())
+}

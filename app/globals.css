@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  /* Deliberately not #0B0B0B / cream+terracotta defaults. Deep
+     charcoal with a slight teal tilt, one emerald accent that nods to
+     mobile money without matching Safaricom's exact trademark green. */
+  --bg: #0f1417;
+  --surface: #161d21;
+  --surface-raised: #1c2429;
+  --border: #263136;
+  --text: #e9edee;
+  --text-muted: #8ca0a6;
+  --accent-paid: #22b573;
+  --accent-pending: #e8a33d;
+  --accent-failed: #e5484d;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-accent-paid: var(--accent-paid);
+  --color-accent-pending: var(--accent-pending);
+  --color-accent-failed: var(--accent-failed);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
